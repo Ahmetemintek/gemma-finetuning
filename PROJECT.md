@@ -142,6 +142,8 @@ We will evaluate:
 root/
 │
 ├── project.md
+├── .gitignore
+├── .env
 ├── requirements.txt
 ├── config/
 │   └── training_config.yaml
