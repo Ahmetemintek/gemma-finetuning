@@ -44,10 +44,22 @@ We will convert it into generative instruction format:
 
 Format example:
 
-Soru: <question>
-Cevap: <answer>
+```
+Bağlam:
+<context>
 
-The model will be trained to generate the answer autoregressively.
+Soru:
+<question>
+
+Cevap:
+<answer>
+```
+
+**Training Details:**
+- The full prompt (context + question + answer) is passed to the model during training.
+- We mask the prompt portion (context + question + "Cevap:" token) using HuggingFace label masking.
+- Loss is computed only on the answer tokens.
+- The model is trained autoregressively to generate the answer.
 
 ---
 
@@ -175,9 +187,11 @@ No monolithic notebook-only pipelines.
 
 ## 9. Engineering Principles
 
+We prioritize clarity, reproducibility, and effectiveness over complexity.
+
 1. Reproducibility first.
 2. Deterministic seeds where possible.
-3. Modular functions.
+3. Plain and direct implementation.
 4. Clear separation of concerns:
    - Data processing
    - Model loading
@@ -185,31 +199,42 @@ No monolithic notebook-only pipelines.
    - Evaluation
 5. No hardcoded paths.
 6. Config-driven parameters.
-7. Minimal but clean logging.
+7. Minimal but effective solutions.
+8. Result-oriented development.
+
+**Do NOT:**
+- Overengineer
+- Add unnecessary abstractions
+- Prioritize cleverness over readability
 
 ---
 
 ## 10. AI-Assisted Coding Guidelines (Cursor)
 
-When generating code:
+**Philosophy:**
+Simplicity over cleverness. Clear, readable code over complex abstractions.
 
-- Always explain architectural decisions briefly in comments.
+**When generating code:**
+
+- Explain architectural decisions briefly in comments.
 - Prefer clarity over cleverness.
 - Avoid unnecessary abstractions.
 - Keep functions short and focused.
-- Include docstrings.
+- Include docstrings where needed.
 - Validate assumptions (assert shapes, check keys).
 - Fail loudly, not silently.
 - Use typing hints where reasonable.
 - Avoid deprecated APIs.
 - Follow HuggingFace best practices.
 
-Never:
+**Never:**
 - Mix data preprocessing inside training loop.
 - Hardcode GPU assumptions.
 - Skip evaluation.
+- Overengineer solutions.
+- Create abstractions without clear benefit.
 
-If uncertain about API usage:
+**If uncertain about API usage:**
 - Reference official HuggingFace documentation patterns.
 
 ---
