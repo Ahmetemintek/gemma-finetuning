@@ -1,0 +1,17 @@
+# Core ML libraries
+torch
+transformers
+peft
+bitsandbytes
+accelerate
+datasets
+evaluate
+
+# Data processing
+pandas
+numpy
+scikit-learn
+
+# Utilities
+tqdm
+python-dotenv

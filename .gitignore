@@ -4,6 +4,7 @@ __pycache__/
 
 # Environment
 .env
+finetune_env
 
 # Data
 data/raw/
