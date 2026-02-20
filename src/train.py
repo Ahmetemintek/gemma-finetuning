@@ -7,6 +7,8 @@ label masking, training, and LoRA adapter saving.
 Run: python src/train.py
 """
 
+import yaml
+
 from datasets import load_dataset
 from transformers import Trainer, TrainingArguments, DataCollatorForSeq2Seq
 
@@ -21,30 +23,19 @@ from formatting import format_prompt
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-MODEL_NAME = "ytu-ce-cosmos/Turkish-Gemma-9b-v0.1"
-OUTPUT_DIR = "outputs/checkpoints"
-MAX_SEQ_LENGTH = 512
-SEED = 42
+with open("config/training_config.yaml", "r") as f:
+    config = yaml.safe_load(f)
 
-# Training hyperparameters
-BATCH_SIZE = 2
-GRADIENT_ACCUMULATION_STEPS = 8
-LEARNING_RATE = 2e-4
-NUM_EPOCHS = 2
-WARMUP_RATIO = 0.05
-WEIGHT_DECAY = 0.01
-
-# Logging and checkpointing
-LOGGING_STEPS = 25
-SAVE_STEPS = 100
-EVAL_STEPS = 100
+MODEL_NAME = config["model"]["name"]
+OUTPUT_DIR = config["training"]["output_dir"]
+MAX_SEQ_LENGTH = config["data"]["max_seq_length"]
 
 
 # ── Step 1: Load datasets ────────────────────────────────────────────────────
 
 print("Loading datasets...")
-train_dataset = load_dataset("json", data_files="data/processed/train.jsonl", split="train")
-val_dataset = load_dataset("json", data_files="data/processed/validation.jsonl", split="train")
+train_dataset = load_dataset("json", data_files=config["data"]["train_file"], split="train")
+val_dataset = load_dataset("json", data_files=config["data"]["val_file"], split="train")
 print(f"Train: {len(train_dataset)} examples | Validation: {len(val_dataset)} examples")
 
 
@@ -115,20 +106,20 @@ data_collator = DataCollatorForSeq2Seq(
 
 training_args = TrainingArguments(
     output_dir=OUTPUT_DIR,
-    num_train_epochs=NUM_EPOCHS,
-    per_device_train_batch_size=BATCH_SIZE,
-    per_device_eval_batch_size=BATCH_SIZE,
-    gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
-    learning_rate=LEARNING_RATE,
-    weight_decay=WEIGHT_DECAY,
-    warmup_ratio=WARMUP_RATIO,
+    num_train_epochs=config["training"]["num_train_epochs"],
+    per_device_train_batch_size=config["training"]["per_device_train_batch_size"],
+    per_device_eval_batch_size=config["training"]["per_device_eval_batch_size"],
+    gradient_accumulation_steps=config["training"]["gradient_accumulation_steps"],
+    learning_rate=config["training"]["learning_rate"],
+    weight_decay=config["training"]["weight_decay"],
+    warmup_ratio=config["training"]["warmup_ratio"],
     fp16=True,
     gradient_checkpointing=True,
     gradient_checkpointing_kwargs={"use_reentrant": False},
     optim="paged_adamw_8bit",
-    logging_steps=LOGGING_STEPS,
-    save_steps=SAVE_STEPS,
-    eval_steps=EVAL_STEPS,
+    logging_steps=config["training"]["logging_steps"],
+    save_steps=config["training"]["save_steps"],
+    eval_steps=config["training"]["eval_steps"],
     eval_strategy="steps",
     save_strategy="steps",
     save_total_limit=2,
@@ -136,7 +127,7 @@ training_args = TrainingArguments(
     metric_for_best_model="eval_loss",
     greater_is_better=False,
     report_to="none",
-    seed=SEED,
+    seed=config["training"]["seed"],
     dataloader_pin_memory=False,
 )
 
