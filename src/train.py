@@ -46,6 +46,7 @@ tokenizer = load_tokenizer(MODEL_NAME)
 
 print("Loading quantized model (4-bit)...")
 model = load_quantized_model(MODEL_NAME)
+model.config.use_cache = False
 
 
 # ── Step 3: Apply LoRA adapters ───────────────────────────────────────────────
@@ -114,6 +115,7 @@ training_args = TrainingArguments(
     weight_decay=config["training"]["weight_decay"],
     warmup_ratio=config["training"]["warmup_ratio"],
     fp16=True,
+    bf16=False,
     gradient_checkpointing=True,
     gradient_checkpointing_kwargs={"use_reentrant": False},
     optim="paged_adamw_8bit",
