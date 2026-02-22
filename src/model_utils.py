@@ -9,6 +9,8 @@ This module provides clean abstractions for:
 Nothing else.
 """
 
+import os
+
 import torch
 from transformers import (
     AutoTokenizer,
@@ -30,7 +32,8 @@ def load_tokenizer(model_name: str) -> PreTrainedTokenizer:
     Returns:
         Loaded tokenizer
     """
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    hf_token = os.getenv("HF_TOKEN")
+    tokenizer = AutoTokenizer.from_pretrained(model_name, token=hf_token)
     
     # Ensure pad token is set (required for batch processing)
     if tokenizer.pad_token is None:
@@ -62,12 +65,13 @@ def load_quantized_model(model_name: str) -> PreTrainedModel:
         bnb_4bit_use_double_quant=True,
     )
     
-    # Load model with quantization
+    hf_token = os.getenv("HF_TOKEN")
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
         quantization_config=bnb_config,
         device_map="auto",
         trust_remote_code=True,
+        token=hf_token,
     )
     
     return model
