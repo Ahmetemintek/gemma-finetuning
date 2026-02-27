@@ -1,13 +1,16 @@
 """
 Evaluation script for QLoRA fine-tuned Turkish-Gemma-9B on medical QA.
 
-Loads the base model in 4-bit, applies saved LoRA adapter,
-runs greedy inference on the validation set, and computes EM / F1.
+Compares base model (no adapter) vs fine-tuned model (with LoRA)
+on the validation set using greedy decoding, EM, and token-level F1.
 
 """
 
+import gc
+
 import yaml
 import torch
+import pandas as pd
 from tqdm import tqdm
 from datasets import load_dataset
 from peft import PeftModel
@@ -41,17 +44,7 @@ print("Loading tokenizer...")
 tokenizer = load_tokenizer(MODEL_NAME)
 
 
-# ── Step 3: Load base model (4-bit) + LoRA adapter ──────────────────────────
-
-print("Loading quantized model (4-bit)...")
-model = load_quantized_model(MODEL_NAME)
-
-print(f"Loading LoRA adapter from {ADAPTER_DIR}...")
-model = PeftModel.from_pretrained(model, ADAPTER_DIR)
-model.eval()
-
-
-# ── Step 4: Metrics ──────────────────────────────────────────────────────────
+# ── Step 3: Metrics ──────────────────────────────────────────────────────────
 
 def normalize(text: str) -> str:
     return text.strip().lower()
@@ -79,57 +72,96 @@ def token_f1(prediction: str, reference: str) -> float:
     return 2 * precision * recall / (precision + recall)
 
 
-# ── Step 5: Run inference and evaluate ───────────────────────────────────────
+# ── Step 4: Inference loop ───────────────────────────────────────────────────
 
-print("Running inference on validation set...")
+def run_evaluation(model, label: str):
+    """Run greedy inference on validation set and return metrics + samples."""
+    print(f"\nRunning inference: {label}...")
 
-em_scores = []
-f1_scores = []
-samples = []
+    em_scores = []
+    f1_scores = []
+    samples = []
 
-for i, example in enumerate(tqdm(val_dataset, desc="Evaluating")):
-    prompt = format_prompt(example["context"], example["question"])
-    reference = example["answer"]
+    for i, example in enumerate(tqdm(val_dataset, desc=label)):
+        prompt = format_prompt(example["context"], example["question"])
+        reference = example["answer"]
 
-    inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+        inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
 
-    with torch.no_grad():
-        outputs = model.generate(
-            **inputs,
-            max_new_tokens=MAX_NEW_TOKENS,
-            do_sample=False,
-            temperature=None,
-        )
+        with torch.no_grad():
+            outputs = model.generate(
+                **inputs,
+                max_new_tokens=MAX_NEW_TOKENS,
+                do_sample=False,
+                temperature=None,
+            )
 
-    generated_ids = outputs[0][inputs["input_ids"].shape[1]:]
-    prediction = tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
+        generated_ids = outputs[0][inputs["input_ids"].shape[1]:]
+        prediction = tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
 
-    em = exact_match(prediction, reference)
-    f1 = token_f1(prediction, reference)
-    em_scores.append(em)
-    f1_scores.append(f1)
+        em_scores.append(exact_match(prediction, reference))
+        f1_scores.append(token_f1(prediction, reference))
 
-    if i < NUM_SAMPLES_TO_PRINT:
-        samples.append((example["question"], reference, prediction))
+        if i < NUM_SAMPLES_TO_PRINT:
+            samples.append((example["question"], reference, prediction))
+
+    avg_em = sum(em_scores) / len(em_scores) * 100
+    avg_f1 = sum(f1_scores) / len(f1_scores) * 100
+    return avg_em, avg_f1, samples
 
 
-# ── Step 6: Print results ────────────────────────────────────────────────────
+# ── Step 5: Evaluate base model ──────────────────────────────────────────────
 
-avg_em = sum(em_scores) / len(em_scores) * 100
-avg_f1 = sum(f1_scores) / len(f1_scores) * 100
+print("Loading quantized model (4-bit)...")
+base_model = load_quantized_model(MODEL_NAME)
+base_model.eval()
 
-print("\n" + "=" * 60)
-print("EVALUATION RESULTS")
-print("=" * 60)
-print(f"Validation samples : {len(val_dataset)}")
-print(f"Exact Match (EM)   : {avg_em:.2f}%")
-print(f"Token F1           : {avg_f1:.2f}%")
-print("=" * 60)
+base_em, base_f1, base_samples = run_evaluation(base_model, "Base Model")
 
-print(f"\nSample predictions ({NUM_SAMPLES_TO_PRINT}):\n")
-for i, (question, reference, prediction) in enumerate(samples):
-    print(f"--- Sample {i + 1} ---")
-    print(f"  Soru      : {question[:100]}")
-    print(f"  Reference : {reference[:100]}")
-    print(f"  Predicted : {prediction[:100]}")
-    print()
+del base_model
+gc.collect()
+torch.cuda.empty_cache()
+
+
+# ── Step 6: Evaluate fine-tuned model ────────────────────────────────────────
+
+print("\nLoading quantized model (4-bit)...")
+finetuned_model = load_quantized_model(MODEL_NAME)
+
+print(f"Loading LoRA adapter from {ADAPTER_DIR}...")
+finetuned_model = PeftModel.from_pretrained(finetuned_model, ADAPTER_DIR)
+finetuned_model.eval()
+
+ft_em, ft_f1, ft_samples = run_evaluation(finetuned_model, "Fine-tuned Model")
+
+del finetuned_model
+gc.collect()
+torch.cuda.empty_cache()
+
+
+# ── Step 7: Print comparison ─────────────────────────────────────────────────
+
+print(f"\nValidation samples: {len(val_dataset)}\n")
+
+results_df = pd.DataFrame({
+    "Metric": ["Exact Match (EM)", "Token F1"],
+    "Base Model": [f"{base_em:.2f}%", f"{base_f1:.2f}%"],
+    "Fine-tuned (LoRA)": [f"{ft_em:.2f}%", f"{ft_f1:.2f}%"],
+    "Delta": [f"{ft_em - base_em:+.2f}%", f"{ft_f1 - base_f1:+.2f}%"],
+})
+print(results_df.to_string(index=False))
+
+samples_df = pd.DataFrame(
+    [
+        {
+            "Model": model_name,
+            "Soru": q[:80],
+            "Reference": r[:80],
+            "Predicted": p[:80],
+        }
+        for model_name, sample_list in [("Base", base_samples), ("Fine-tuned", ft_samples)]
+        for q, r, p in sample_list
+    ]
+)
+print(f"\nSample predictions ({NUM_SAMPLES_TO_PRINT} per model):\n")
+print(samples_df.to_string(index=False))
