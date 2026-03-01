@@ -3,8 +3,6 @@ Push LoRA adapter and tokenizer to Hugging Face Hub.
 
 Uploads only the adapter weights — not the full model.
 The base model must be loaded separately by the user.
-
-Run: python src/push_to_hub.py
 """
 
 import os
