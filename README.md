@@ -158,7 +158,7 @@ If you use this work, please cite:
 @misc{turkish-gemma-medical-qlora,
   author = {Ahmet Emin Tek},
   title = {QLoRA Fine-Tuning: Turkish-Gemma-9B for Medical QA},
-  year = {2025},
+  year = {2026},
   publisher = {GitHub},
   url = {https://github.com/Ahmetemintek/gemma-finetuning}
 }
