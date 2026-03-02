@@ -38,9 +38,16 @@ This experiment investigates whether generative fine-tuning can approximate extr
 ├── notebooks/
 │   ├── eda.ipynb          # Exploratory data analysis
 │   └── colab_training.ipynb # Training notebook for Google Colab
-|   └── evaluation.ipynb        # Evaluation notebook for Google Colab
+|   └── evaluation.ipynb     # Model evaluation and inference on Google Colab
 │
 └── outputs/
     ├── checkpoints/       # Saved model checkpoints
     └── evaluation_results/ # Evaluation logs and results
 ```
+
+## Limitations & Trade-offs
+
+The model is trained with a generative objective and may paraphrase or slightly extend answers rather than strictly extracting spans.
+It does not provide token-level offsets like traditional encoder-based NER or extractive QA systems.
+Training was performed on ~6.5k samples with a 512-token limit, so performance may degrade on long or out-of-distribution medical texts.
+This project is an experimental demonstration of parameter-efficient domain adaptation and is not intended for clinical deployment.

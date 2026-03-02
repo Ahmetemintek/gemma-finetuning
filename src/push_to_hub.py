@@ -144,6 +144,12 @@ Cevap:
 -  The model does not provide token-level offsets or guaranteed extractive spans.
 -  This adapter is intended for research and experimentation, not clinical decision-making.
 
+## Repository
+
+Full training code, evaluation scripts, and notebooks are available at:
+
+**[github.com/Ahmetemintek/gemma-finetuning](https://github.com/Ahmetemintek/gemma-finetuning)**
+
 ## Acknowledgements
 
 This adapter is built on top of the base model ytu-ce-cosmos/Turkish-Gemma-9b-v0.1.
