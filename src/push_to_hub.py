@@ -61,6 +61,15 @@ Parameter-efficient fine-tuned **LoRA adapter** for medical question answering i
 
 **+50 EM and +49 F1 improvement using QLoRA with only 1.05% trainable parameters.**
 
+## Overview
+
+This LoRA adapter demonstrates that a decoder-based large language model can be adapted via QLoRA to perform context-grounded medical question answering in Turkish. 
+
+Rather than training multiple task-specific encoder models (e.g., NER or extractive QA), we explore whether a single generative model can approximate extractive behavior through structured prompt conditioning. 
+
+The fine-tuned adapter improves Exact Match from 4.63% to 54.76% and F1 from 25.80% to 75.39% on the MedTurkQA validation set.
+
+
 ## Model Details
 
 | Property | Value |
@@ -127,6 +136,20 @@ Soru:
 
 Cevap:
 ```
+
+## Limitations
+
+-  The model was fine-tuned on ~6.5k QA samples and evaluated only on the MedTurkQA validation split; results may not generalize beyond similar medical text distributions.
+-  The training setup uses a generative objective, which may produce paraphrased or slightly verbose answers rather than exact span extraction.
+-  The model does not provide token-level offsets or guaranteed extractive spans.
+-  This adapter is intended for research and experimentation, not clinical decision-making.
+
+## Acknowledgements
+
+This adapter is built on top of the base model ytu-ce-cosmos/Turkish-Gemma-9b-v0.1.
+The model was fine-tuned on the MedTurkQA dataset.
+The training approach follows the QLoRA method for parameter-efficient fine-tuning.
+
 """
 
 model_card_path = os.path.join(ADAPTER_DIR, "README.md")
