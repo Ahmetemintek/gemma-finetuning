@@ -25,6 +25,20 @@ The experiment investigates whether generative fine-tuning can approximate extra
 
 The results demonstrate substantial improvement over the base model, suggesting that efficient generative adaptation can serve as a flexible alternative to traditional task-specific pipelines.
 
+## Qualitative Comparison
+
+**Example: Complication Identification**
+
+> **Context:** Tip 2 diyabet, vücudun insülini etkili kullanamadığı kronik bir metabolizma hastalığıdır. Tedavide yaşam tarzı değişiklikleri, oral antidiyabetik ilaçlar ve gerektiğinde insülin tedavisi uygulanır. Kontrol altına alınmazsa böbrek yetmezliği, görme kaybı ve kardiyovasküler hastalıklara yol açabilir.
+>
+> **Question:** Tip 2 diyabet kontrol altına alınmazsa hangi komplikasyonlara yol açabilir?
+
+| | Answer |
+|---|---|
+| **Base Model** | Tip 2 diyabet kontrol altına alınmazsa **böbrek yetmezliği**, **görme kaybı** (retinopati) ve **kardiyovasküler hastalıklar** gibi ciddi komplikasyonlar gelişebilir. Ayrıca nöropati (sinir hasarı), ayak ülseri ve enfeksiyon riski de artar. |
+| **Fine-tuned (LoRA)** | böbrek yetmezliği, görme kaybı ve kardiyovasküler hastalıklar |
+
+The base model generates a verbose, partially hallucinated response that extends beyond the provided context. The fine-tuned model extracts a concise, context-grounded answer — approximating extractive behavior through generative fine-tuning.
 
 ## Project Structure
 
